@@ -1,28 +1,28 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { AuthProvider } from "./auth/AuthContext.jsx";
-import { ProtectedRoute } from "./auth/ProtectedRoute.jsx";
-import { PublicOnlyRoute } from "./auth/PublicOnlyRoute.jsx";
-import { DashboardPage } from "./pages/DashboardPage.jsx";
-import { LoginPage } from "./pages/LoginPage.jsx";
-import { SignUpPage } from "./pages/SignUpPage.jsx";
+import { useEffect } from "react";
 
-export default function App() {
+function App() {
+  const API = import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    console.log("API URL:", API);
+
+    fetch(`${API}/`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Response data:", data);
+        console.log("Message:", data.message);
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+      });
+  }, [API]);
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route element={<PublicOnlyRoute />}>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
-          </Route>
-
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<DashboardPage />} />
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <div>
+      <h1>Care Planner</h1>
+      <p>Check console for API response</p>
+    </div>
   );
 }
+
+export default App;
