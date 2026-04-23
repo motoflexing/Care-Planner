@@ -25,7 +25,7 @@ export function normalizeAIResponse(payload, input) {
       mode: input.basicMode ? "basic" : "personalized"
     },
     meta: payload.meta || {
-      source: "openai",
+      source: "gemini",
       note: "Output may vary depending on patient-specific factors and local protocols."
     },
     medicalCarePlan: payload.medicalCarePlan || {},

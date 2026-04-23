@@ -58,17 +58,29 @@ Server values go in `server/.env`:
 ```bash
 PORT=4000
 CLIENT_ORIGIN=http://localhost:5173
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1-mini
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Client values can go in `client/.env`:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:4000/api
+VITE_API_URL=http://localhost:4000
 ```
 
-If `OPENAI_API_KEY` is not set, Care Planner uses the built-in safe mock services for image and symptom analysis.
+For deployment:
+
+```bash
+# Vercel frontend
+VITE_API_URL=https://care-planner-api.onrender.com
+
+# Render backend
+CLIENT_ORIGIN=https://care-planner-client.vercel.app
+```
+
+`CLIENT_ORIGIN` may also be a comma-separated list if you want to explicitly allow multiple frontend origins.
+
+If `GEMINI_API_KEY` is not set, Care Planner falls back to the built-in mock condition-plan generator, while symptom and image analysis continue using the existing safe local services.
 
 ## API Routes
 

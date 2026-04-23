@@ -1,47 +1,69 @@
+import { GoogleGenAI } from "@google/genai";
 import { buildOpenAIPrompt } from "../utils/promptBuilder.js";
 import { normalizeAIResponse } from "../utils/responseNormalizer.js";
 
+function extractResponseText(response) {
+  if (typeof response?.text === "string" && response.text.trim()) {
+    return response.text;
+  }
+
+  const parts = response?.candidates?.[0]?.content?.parts || [];
+  const text = parts
+    .map((part) => part?.text || "")
+    .join("")
+    .trim();
+
+  return text || "";
+}
+
 export async function maybeGenerateWithOpenAI(input, baseSample) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return null;
-  }
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-      input: buildOpenAIPrompt(input, baseSample),
-      text: {
-        format: {
-          type: "json_object"
-        }
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const details = await response.text();
-    console.error("OpenAI request failed:", details);
-    return null;
-  }
-
-  const payload = await response.json();
-  const rawText = payload.output_text;
-
-  if (!rawText) {
+    console.warn("Gemini generation skipped: GEMINI_API_KEY is not configured.");
     return null;
   }
 
   try {
-    return normalizeAIResponse(JSON.parse(rawText), input);
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model,
+      contents: buildOpenAIPrompt(input, baseSample),
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+        maxOutputTokens: 8192
+      }
+    });
+
+    const rawText = extractResponseText(response);
+
+    if (!rawText) {
+      console.error("Gemini response did not include text output.", {
+        model,
+        response
+      });
+      return null;
+    }
+
+    try {
+      return normalizeAIResponse(JSON.parse(rawText), input);
+    } catch (error) {
+      console.error("Gemini response parse failed.", {
+        model,
+        rawText,
+        error
+      });
+      return null;
+    }
   } catch (error) {
-    console.error("OpenAI response parse failed:", error);
+    console.error("Gemini request failed.", {
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      message: error?.message,
+      stack: error?.stack,
+      cause: error?.cause
+    });
     return null;
   }
 }

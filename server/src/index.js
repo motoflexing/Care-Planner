@@ -8,10 +8,18 @@ dotenv.config();
 const app = express();
 const port = Number(process.env.PORT || 4000);
 
-const allowedOrigins = [
+const defaultOrigins = [
   "http://localhost:5173",
-  process.env.CLIENT_ORIGIN
-].filter(Boolean);
+  "http://127.0.0.1:5173",
+  "https://care-planner-client.vercel.app"
+];
+
+const configuredOrigins = (process.env.CLIENT_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultOrigins, ...configuredOrigins])];
 
 app.use(
   cors({
@@ -32,11 +40,17 @@ app.get("/", (_req, res) => {
   res.json({ message: "Server working" });
 });
 
+app.get("/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    message: "Care Planner API healthy"
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
-    service: "care-planner-api",
-    timestamp: new Date().toISOString()
+    message: "Care Planner API healthy"
   });
 });
 
@@ -46,7 +60,7 @@ app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(err.status || 500).json({
     message: err.message || "The server could not complete the request.",
-    details: "Please review the inputs and try again."
+    details: err.details || "Please review the inputs and try again."
   });
 });
 

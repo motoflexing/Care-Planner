@@ -1,11 +1,13 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_BASE = `${API_URL.replace(/\/$/, "")}/api`;
 
 async function request(path, options = {}) {
   let response;
   const isFormData = options.body instanceof FormData;
+  const requestUrl = `${API_BASE}${path}`;
 
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(requestUrl, {
       headers: isFormData
         ? undefined
         : {
@@ -16,30 +18,48 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     console.error("API request failed:", {
-      url: `${API_BASE}${path}`,
+      url: requestUrl,
       error
     });
+
+    const details =
+      error instanceof TypeError
+        ? "The request did not reach the API. Check CORS, backend availability, and the VITE_API_URL setting."
+        : error.message;
+
     throw new Error(
-      "Unable to connect to the Care Planner server. Please make sure the backend is running on http://localhost:4000."
+      `Unable to connect to the Care Planner server at ${API_URL}. ${details}`
     );
   }
 
   if (!response.ok) {
     let message = "Request failed.";
+    let details = "";
 
     try {
       const payload = await response.json();
       message = payload.message || message;
+      details = payload.details || "";
     } catch (_error) {
+      try {
+        const text = await response.text();
+        details = text;
+      } catch (_readError) {
+        details = "";
+      }
+
       message = response.statusText || message;
     }
 
     console.error("API response error:", {
-      url: `${API_BASE}${path}`,
+      url: requestUrl,
       status: response.status,
-      message
+      message,
+      details
     });
-    throw new Error(message);
+
+    const suffix = details && details !== message ? ` ${details}` : "";
+    throw new Error(`Request failed (${response.status}): ${message}${suffix}`);
   }
 
   return response.json();
